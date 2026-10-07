@@ -1,0 +1,4 @@
+warehouse_id,warehouse_name,warehouse_type,capacity_units
+WH001,Central Warehouse,Main Warehouse,15000
+WH002,Urban Warehouse,Distribution Warehouse,12000
+WH003,Regional Warehouse,Distribution Warehouse,8000
