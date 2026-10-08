@@ -1,0 +1,41 @@
+product_id,product_name,category,unit,unit_cost,selling_price,shelf_life_days
+P001,Minyak Goreng 1L,Food & Beverage,Bottle,15000,18000,365
+P002,Gula Pasir 1kg,Food & Beverage,Pack,14000,17000,365
+P003,Tepung Terigu 1kg,Food & Beverage,Pack,10000,13000,365
+P004,Beras Premium 5kg,Food & Beverage,Sack,65000,75000,365
+P005,Mi Instan Goreng,Food & Beverage,Pack,2500,3500,365
+P006,Kopi Bubuk 200g,Food & Beverage,Pack,14000,18000,540
+P007,Teh Celup 25 Bags,Food & Beverage,Box,6000,8000,730
+P008,Saus Sambal 340ml,Food & Beverage,Bottle,9000,12000,365
+P009,Biskuit 200g,Food & Beverage,Pack,7000,10000,365
+P010,Susu UHT 1L,Food & Beverage,Box,15000,19000,180
+P011,Shampoo 170ml,Personal Care,Bottle,18000,23000,730
+P012,Sabun Mandi 90g,Personal Care,Bar,4000,6000,1095
+P013,Pasta Gigi 120g,Personal Care,Tube,10000,14000,730
+P014,Deodorant Roll On 50ml,Personal Care,Bottle,13000,18000,730
+P015,Body Lotion 200ml,Personal Care,Bottle,20000,27000,730
+P016,Facial Wash 100ml,Personal Care,Tube,22000,29000,730
+P017,Conditioner 170ml,Personal Care,Bottle,19000,25000,730
+P018,Hand Wash 250ml,Personal Care,Bottle,12000,16000,730
+P019,Cotton Buds 100pcs,Personal Care,Box,6000,9000,1095
+P020,Wet Wipes 50 Sheets,Personal Care,Pack,8000,12000,730
+P021,Detergen Bubuk 800g,Home Care,Pack,18000,23000,
+P022,Sabun Cuci Piring 800ml,Home Care,Bottle,12000,16000,
+P023,Pembersih Lantai 800ml,Home Care,Bottle,13000,18000,
+P024,Pemutih Pakaian 1L,Home Care,Bottle,10000,14000,
+P025,Pelembut Pakaian 900ml,Home Care,Bottle,15000,20000,
+P026,Pewangi Ruangan 300ml,Home Care,Bottle,17000,23000,
+P027,Pengharum Pakaian 450ml,Home Care,Bottle,14000,19000,
+P028,Cairan Pembersih Kaca 500ml,Home Care,Bottle,11000,15000,
+P029,Pembersih Kamar Mandi 500ml,Home Care,Bottle,14000,19000,
+P030,Insect Killer Spray 600ml,Home Care,Can,20000,27000,
+P031,Sapu Lantai,Household,Piece,18000,25000,
+P032,Pel Lantai,Household,Piece,25000,35000,
+P033,Ember Plastik 20L,Household,Piece,22000,30000,
+P034,Tempat Sampah 20L,Household,Piece,28000,38000,
+P035,Rak Serbaguna 3 Tingkat,Household,Piece,75000,95000,
+P036,Baskom Plastik 30cm,Household,Piece,12000,17000,
+P037,Keset Kaki,Household,Piece,15000,21000,
+P038,Gantungan Baju 10pcs,Household,Pack,18000,25000,
+P039,Wadah Makanan Plastik,Household,Set,30000,40000,
+P040,Kotak Penyimpanan Plastik,Household,Piece,35000,48000,
