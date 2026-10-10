@@ -521,3 +521,388 @@ FROM opening_stock o
 LEFT JOIN january_movement j
     ON o.warehouse_id = j.warehouse_id
 ORDER BY o.warehouse_id;
+
+
+-- ============================================================
+-- PHASE 03 - PART 03: SALES PERFORMANCE & PROFITABILITY ANALYSIS
+-- Dataset: PT Nusantara Distribution 2025
+-- ============================================================
+
+-- STEP 36: SALES PERFORMANCE OVERVIEW 2025
+-- Business Objective:
+-- Measure total sales records, units sold, and gross revenue
+-- during the 2025 reporting period.
+
+SELECT
+    COUNT(*) AS total_sales_records,
+    SUM(quantity) AS total_units_sold,
+    SUM(quantity * unit_price) AS gross_sales
+FROM sales
+WHERE sales_date >= DATE '2025-01-01'
+    AND sales_date < DATE '2026-01-01';
+
+-- Validated Results:
+-- Total Sales Records : 28,169
+-- Total Units Sold    : 209,924
+-- Gross Sales         : IDR 4,182,694,000.00
+--
+-- Business Insight:
+-- The company recorded 209,924 units sold during 2025,
+-- generating IDR 4.18 billion in gross sales before discounts.
+-- Sales records represent table rows, not necessarily
+-- unique customer orders.
+
+-- ============================================================
+-- STEP 37: GROSS SALES, DISCOUNT AMOUNT & NET SALES
+-- ============================================================
+
+-- Business Objective:
+-- Calculate gross revenue, total discounts, and net revenue
+-- during the 2025 reporting period.
+
+SELECT
+    SUM(quantity * unit_price) AS gross_sales,
+    SUM(
+        quantity * unit_price * discount_pct / 100
+    ) AS discount_amount,
+    SUM(
+        quantity * unit_price * (1 - discount_pct / 100)
+    ) AS net_sales
+FROM sales
+WHERE sales_date >= DATE '2025-01-01'
+    AND sales_date < DATE '2026-01-01';
+
+-- Validated Results:
+-- Gross Sales     : IDR 4,182,694,000.00
+-- Discount Amount : IDR    74,524,550.00
+-- Net Sales       : IDR 4,108,169,450.00
+--
+-- Validation:
+-- Gross Sales - Discount Amount = Net Sales
+-- IDR 4,182,694,000 - IDR 74,524,550
+-- = IDR 4,108,169,450
+--
+-- Effective Discount Rate: 1.78%
+--
+-- Business Insight:
+-- The company generated IDR 4.11 billion in net sales
+-- after applying IDR 74.52 million in discounts.
+-- Discounts represented approximately 1.78% of gross sales.
+-- Net sales do not represent net profit.
+
+-- ============================================================
+-- STEP 38: TOP 10 PRODUCTS BY NET SALES
+-- ============================================================
+
+-- Business Objective:
+-- Identify the ten products generating the highest net sales
+-- during 2025, including sales volume and product category.
+
+SELECT
+    p.product_id,
+    p.product_name,
+    p.category,
+    SUM(s.quantity) AS total_units_sold,
+    ROUND(
+        SUM(
+            s.quantity * s.unit_price
+            * (1 - s.discount_pct / 100)
+        ), 2
+    ) AS net_sales
+FROM sales AS s
+JOIN products AS p
+    ON s.product_id = p.product_id
+WHERE s.sales_date >= DATE '2025-01-01'
+    AND s.sales_date < DATE '2026-01-01'
+GROUP BY
+    p.product_id,
+    p.product_name,
+    p.category
+ORDER BY net_sales DESC
+LIMIT 10;
+
+-- Validated Results:
+-- Rank 1: Beras Premium 5kg
+-- Net Sales  : IDR 611,580,750.00
+-- Units Sold : 8,306
+--
+-- Rank 2: Minyak Goreng 1L
+-- Net Sales  : IDR 236,246,940.00
+-- Units Sold : 13,356
+--
+-- Rank 3: Detergen Bubuk 800g
+-- Net Sales  : IDR 212,548,290.00
+-- Units Sold : 9,412
+--
+-- Business Insight:
+-- Beras Premium 5kg generated the highest net sales,
+-- contributing approximately 14.89% of company net sales.
+-- Minyak Goreng 1L sold more units but generated less revenue.
+-- High sales volume does not necessarily mean high revenue.
+
+-- ============================================================
+-- STEP 39: SALES-PRODUCT RECONCILIATION
+-- ============================================================
+
+-- Business Objective:
+-- Verify that all 2025 sales records have matching
+-- product references before performing product-level analysis.
+
+SELECT
+    COUNT(*) AS unmatched_sales_records,
+    COALESCE(SUM(s.quantity), 0) AS unmatched_units,
+    COALESCE(
+        SUM(
+            s.quantity * s.unit_price
+            * (1 - s.discount_pct / 100)
+        ), 0
+    ) AS unmatched_net_sales
+FROM sales AS s
+LEFT JOIN products AS p
+    ON s.product_id = p.product_id
+WHERE s.sales_date >= DATE '2025-01-01'
+    AND s.sales_date < DATE '2026-01-01'
+    AND p.product_id IS NULL;
+
+-- Validated Results:
+-- Unmatched Sales Records : 0
+-- Unmatched Units         : 0
+-- Unmatched Net Sales     : IDR 0.00
+--
+-- Validation:
+-- All 2025 sales records have matching product references.
+-- No sales records were excluded due to missing product IDs.
+--
+-- Business Insight:
+-- Product reference completeness supports reliable
+-- product-level sales aggregation and reporting.
+-- This check does not independently verify that
+-- product IDs are unique in the products table.
+
+-- ============================================================
+-- STEP 40: SALES PERFORMANCE BY PRODUCT CATEGORY
+-- ============================================================
+
+-- Business Objective:
+-- Analyze sales records, sales volume, and net revenue
+-- across product categories during 2025.
+
+SELECT
+    p.category,
+    COUNT(*) AS total_sales_records,
+    SUM(s.quantity) AS total_units_sold,
+    ROUND(
+        SUM(
+            s.quantity * s.unit_price
+            * (1 - s.discount_pct / 100)
+        ), 2
+    ) AS net_sales
+FROM sales AS s
+JOIN products AS p
+    ON s.product_id = p.product_id
+WHERE s.sales_date >= DATE '2025-01-01'
+    AND s.sales_date < DATE '2026-01-01'
+GROUP BY p.category
+ORDER BY net_sales DESC;
+
+-- Validated Results:
+-- Food & Beverage:
+-- Records   : 8,315
+-- Units     : 85,014
+-- Net Sales : IDR 1,550,716,430.00
+--
+-- Home Care:
+-- Records   : 6,848
+-- Units     : 48,085
+-- Net Sales : IDR 919,456,660.00
+--
+-- Household:
+-- Records   : 5,683
+-- Units     : 25,548
+-- Net Sales : IDR 824,882,580.00
+--
+-- Personal Care:
+-- Records   : 7,323
+-- Units     : 51,277
+-- Net Sales : IDR 813,113,780.00
+--
+-- Reconciliation:
+-- Total Sales Records : 28,169
+-- Total Units Sold    : 209,924
+-- Total Net Sales     : IDR 4,108,169,450.00
+--
+-- Business Insight:
+-- Food & Beverage contributed approximately 37.75%
+-- of total company net sales and recorded the highest
+-- sales volume at 85,014 units.
+-- Household generated higher revenue than Personal Care
+-- despite selling substantially fewer units.
+
+-- ============================================================
+-- STEP 41: AVERAGE NET SALES PER UNIT BY CATEGORY
+-- ============================================================
+
+-- Business Objective:
+-- Measure the average net revenue generated per unit sold
+-- across product categories during 2025.
+
+SELECT
+    p.category,
+    SUM(s.quantity) AS total_units_sold,
+    ROUND(
+        SUM(
+            s.quantity * s.unit_price
+            * (1 - s.discount_pct / 100)
+        ) / NULLIF(SUM(s.quantity), 0),
+        2
+    ) AS avg_net_sales_per_unit
+FROM sales AS s
+JOIN products AS p
+    ON s.product_id = p.product_id
+WHERE s.sales_date >= DATE '2025-01-01'
+    AND s.sales_date < DATE '2026-01-01'
+GROUP BY p.category
+ORDER BY avg_net_sales_per_unit DESC;
+
+-- Validated Results:
+-- Household       : IDR 32,287.56 per unit
+-- Home Care       : IDR 19,121.49 per unit
+-- Food & Beverage : IDR 18,240.72 per unit
+-- Personal Care   : IDR 15,857.28 per unit
+--
+-- Business Insight:
+-- Household generated the highest average net revenue
+-- per unit sold, despite having the lowest sales volume.
+--
+-- Food & Beverage relied more heavily on sales volume
+-- to generate the highest total net revenue.
+--
+-- Higher revenue per unit does not necessarily indicate
+-- higher profitability, since product costs must also
+-- be considered.
+
+-- ============================================================
+-- STEP 42: ESTIMATED GROSS PROFIT BY CATEGORY
+-- ============================================================
+
+-- Business Objective:
+-- Estimate gross profit by product category using
+-- recorded net sales and reference product unit costs.
+
+SELECT
+    p.category,
+    ROUND(
+        SUM(
+            s.quantity * s.unit_price
+            * (1 - s.discount_pct / 100)
+        ), 2
+    ) AS net_sales,
+    ROUND(
+        SUM(s.quantity * p.unit_cost), 2
+    ) AS estimated_cogs,
+    ROUND(
+        SUM(
+            s.quantity * s.unit_price
+            * (1 - s.discount_pct / 100)
+        ) - SUM(s.quantity * p.unit_cost),
+        2
+    ) AS estimated_gross_profit
+FROM sales AS s
+JOIN products AS p
+    ON s.product_id = p.product_id
+WHERE s.sales_date >= DATE '2025-01-01'
+    AND s.sales_date < DATE '2026-01-01'
+GROUP BY p.category
+ORDER BY estimated_gross_profit DESC;
+
+-- Validated Results:
+-- Food & Beverage : IDR 257,020,430.00
+-- Home Care       : IDR 219,111,660.00
+-- Household       : IDR 207,290,580.00
+-- Personal Care   : IDR 206,068,780.00
+--
+-- Total Net Sales              : IDR 4,108,169,450.00
+-- Total Estimated COGS         : IDR 3,218,678,000.00
+-- Total Estimated Gross Profit : IDR   889,491,450.00
+--
+-- Reconciliation:
+-- Net Sales - Estimated COGS = Estimated Gross Profit
+--
+-- Business Insight:
+-- Food & Beverage generated the highest estimated
+-- gross profit in absolute monetary terms.
+--
+-- However, higher gross profit does not necessarily
+-- indicate a higher gross profit margin.
+--
+-- Methodology Limitation:
+-- Estimated COGS uses products.unit_cost as a reference.
+-- Historical purchase costs, cost adjustments, and
+-- inventory valuation methods have not been validated.
+-- Therefore, gross profit is an estimate rather than
+-- an audited financial result.
+
+-- ============================================================
+-- STEP 43: ESTIMATED GROSS MARGIN BY CATEGORY
+-- ============================================================
+
+-- Business Objective:
+-- Compare estimated gross profit margins across product
+-- categories to identify relative profitability.
+
+SELECT
+    p.category,
+    ROUND(
+        SUM(
+            s.quantity * s.unit_price
+            * (1 - s.discount_pct / 100)
+        ) - SUM(s.quantity * p.unit_cost),
+        2
+    ) AS estimated_gross_profit,
+    ROUND(
+        (
+            SUM(
+                s.quantity * s.unit_price
+                * (1 - s.discount_pct / 100)
+            ) - SUM(s.quantity * p.unit_cost)
+        )
+        / NULLIF(
+            SUM(
+                s.quantity * s.unit_price
+                * (1 - s.discount_pct / 100)
+            ), 0
+        ) * 100,
+        2
+    ) AS estimated_gross_margin_pct
+FROM sales AS s
+JOIN products AS p
+    ON s.product_id = p.product_id
+WHERE s.sales_date >= DATE '2025-01-01'
+    AND s.sales_date < DATE '2026-01-01'
+GROUP BY p.category
+ORDER BY estimated_gross_margin_pct DESC;
+
+-- Validated Results:
+-- Personal Care   : 25.34%
+-- Household       : 25.13%
+-- Home Care       : 23.83%
+-- Food & Beverage : 16.57%
+--
+-- Total Estimated Gross Profit : IDR 889,491,450.00
+-- Company Estimated Gross Margin: 21.65%
+--
+-- Business Insight:
+-- Personal Care recorded the highest estimated
+-- gross margin at 25.34%, despite generating
+-- the lowest total net sales.
+--
+-- Food & Beverage generated the highest total
+-- revenue and estimated gross profit, but had
+-- the lowest estimated gross margin at 16.57%.
+--
+-- This demonstrates that revenue leadership
+-- does not necessarily indicate margin leadership.
+--
+-- Methodology Limitation:
+-- Gross margins are estimated using reference
+-- product unit costs, not validated historical COGS.
