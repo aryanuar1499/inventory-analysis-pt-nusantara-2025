@@ -258,3 +258,266 @@ SELECT
     ) AS invalid_transaction_type
 
 FROM inventory_transactions;
+
+-- =====================================================
+-- PHASE 03: INVENTORY MOVEMENT ANALYSIS
+-- STEP 27: INVENTORY MOVEMENT SUMMARY
+-- =====================================================
+
+SELECT
+    SUM(CASE
+        WHEN transaction_type IN ('INBOUND', 'RETURN')
+        THEN quantity
+        ELSE 0
+    END) AS total_stock_in,
+
+    SUM(CASE
+        WHEN transaction_type IN ('OUTBOUND', 'DAMAGE')
+        THEN quantity
+        ELSE 0
+    END) AS total_stock_out,
+
+    SUM(CASE
+        WHEN transaction_type IN ('INBOUND', 'RETURN')
+        THEN quantity
+        WHEN transaction_type IN ('OUTBOUND', 'DAMAGE')
+        THEN -quantity
+        ELSE 0
+    END) AS net_inventory_movement
+
+FROM inventory_transactions;
+
+-- STEP 28: INVENTORY MOVEMENT BY WAREHOUSE
+
+SELECT
+    warehouse_id,
+
+    SUM(CASE
+        WHEN transaction_type IN ('INBOUND', 'RETURN')
+        THEN quantity
+        ELSE 0
+    END) AS stock_in,
+
+    SUM(CASE
+        WHEN transaction_type IN ('OUTBOUND', 'DAMAGE')
+        THEN quantity
+        ELSE 0
+    END) AS stock_out,
+
+    SUM(CASE
+        WHEN transaction_type IN ('INBOUND', 'RETURN')
+        THEN quantity
+        WHEN transaction_type IN ('OUTBOUND', 'DAMAGE')
+        THEN -quantity
+        ELSE 0
+    END) AS net_movement
+
+FROM inventory_transactions
+GROUP BY warehouse_id
+ORDER BY warehouse_id;
+
+SELECT DISTINCT
+    warehouse_id
+FROM inventory_transactions
+ORDER BY warehouse_id;
+
+-- STEP 29: ESTIMATED CLOSING INVENTORY BY WAREHOUSE
+
+WITH opening_stock AS (
+    SELECT
+        warehouse_id,
+        SUM(opening_qty) AS opening_qty
+    FROM opening_inventory
+    GROUP BY warehouse_id
+),
+movement AS (
+    SELECT
+        warehouse_id,
+        SUM(
+            CASE
+                WHEN transaction_type IN ('INBOUND', 'RETURN')
+                THEN quantity
+                WHEN transaction_type IN ('OUTBOUND', 'DAMAGE')
+                THEN -quantity
+                ELSE 0
+            END
+        ) AS net_movement
+    FROM inventory_transactions
+    GROUP BY warehouse_id
+)
+SELECT
+    o.warehouse_id,
+    o.opening_qty,
+    m.net_movement,
+    o.opening_qty + m.net_movement AS estimated_closing_qty
+FROM opening_stock o
+JOIN movement m
+    ON o.warehouse_id = m.warehouse_id
+ORDER BY o.warehouse_id;
+
+-- STEP 30: PRODUCT-WAREHOUSE CLOSING STOCK VALIDATION
+
+WITH movement AS (
+    SELECT
+        warehouse_id,
+        product_id,
+        SUM(
+            CASE
+                WHEN transaction_type IN ('INBOUND', 'RETURN')
+                    THEN quantity
+                WHEN transaction_type IN ('OUTBOUND', 'DAMAGE')
+                    THEN -quantity
+                ELSE 0
+            END
+        ) AS net_movement
+    FROM inventory_transactions
+    GROUP BY warehouse_id, product_id
+),
+closing_stock AS (
+    SELECT
+        oi.warehouse_id,
+        oi.product_id,
+        oi.opening_qty,
+        COALESCE(m.net_movement, 0) AS net_movement,
+        oi.opening_qty + COALESCE(m.net_movement, 0)
+            AS closing_qty
+    FROM opening_inventory oi
+    LEFT JOIN movement m
+        ON oi.warehouse_id = m.warehouse_id
+       AND oi.product_id = m.product_id
+)
+SELECT
+    COUNT(*) AS total_combinations,
+    COUNT(*) FILTER (WHERE closing_qty < 0)
+        AS negative_closing_stock,
+    COUNT(*) FILTER (WHERE closing_qty = 0)
+        AS zero_closing_stock,
+    MIN(closing_qty) AS minimum_closing_stock,
+    MAX(closing_qty) AS maximum_closing_stock,
+    SUM(closing_qty) AS total_closing_stock
+FROM closing_stock;
+
+-- STEP 31: MONTHLY INVENTORY MOVEMENT ANALYSIS
+
+SELECT
+    DATE_TRUNC('month', transaction_date)::date
+        AS transaction_month,
+
+    SUM(CASE
+        WHEN transaction_type IN ('INBOUND', 'RETURN')
+        THEN quantity
+        ELSE 0
+    END) AS stock_in,
+
+    SUM(CASE
+        WHEN transaction_type IN ('OUTBOUND', 'DAMAGE')
+        THEN quantity
+        ELSE 0
+    END) AS stock_out,
+
+    SUM(CASE
+        WHEN transaction_type IN ('INBOUND', 'RETURN')
+        THEN quantity
+        WHEN transaction_type IN ('OUTBOUND', 'DAMAGE')
+        THEN -quantity
+        ELSE 0
+    END) AS net_movement
+
+FROM inventory_transactions
+GROUP BY DATE_TRUNC('month', transaction_date)
+ORDER BY transaction_month;
+
+-- STEP 32: JANUARY TRANSACTION BREAKDOWN
+
+SELECT
+    transaction_type,
+    COUNT(*) AS total_transactions,
+    SUM(quantity) AS total_quantity
+FROM inventory_transactions
+WHERE transaction_date >= '2025-01-01'
+  AND transaction_date < '2025-02-01'
+GROUP BY transaction_type
+ORDER BY total_quantity DESC;
+
+-- STEP 33: JANUARY INVENTORY MOVEMENT BY WAREHOUSE
+
+SELECT
+    warehouse_id,
+
+    SUM(
+        CASE
+            WHEN transaction_type IN ('INBOUND', 'RETURN')
+                THEN quantity
+            ELSE 0
+        END
+    ) AS stock_in,
+
+    SUM(
+        CASE
+            WHEN transaction_type IN ('OUTBOUND', 'DAMAGE')
+                THEN quantity
+            ELSE 0
+        END
+    ) AS stock_out,
+
+    SUM(
+        CASE
+            WHEN transaction_type IN ('INBOUND', 'RETURN')
+                THEN quantity
+            WHEN transaction_type IN ('OUTBOUND', 'DAMAGE')
+                THEN -quantity
+            ELSE 0
+        END
+    ) AS net_movement
+
+FROM inventory_transactions
+WHERE transaction_date >= '2025-01-01'
+  AND transaction_date < '2025-02-01'
+GROUP BY warehouse_id
+ORDER BY warehouse_id;
+
+-- STEP 34: VERIFY OPENING INVENTORY SNAPSHOT DATE
+
+SELECT
+    MIN(snapshot_date) AS earliest_snapshot,
+    MAX(snapshot_date) AS latest_snapshot,
+    COUNT(DISTINCT snapshot_date) AS snapshot_dates,
+    COUNT(*) AS total_records
+FROM opening_inventory;
+
+-- STEP 35: ESTIMATED JANUARY CLOSING STOCK BY WAREHOUSE
+
+WITH opening_stock AS (
+    SELECT
+        warehouse_id,
+        SUM(opening_qty) AS opening_qty
+    FROM opening_inventory
+    GROUP BY warehouse_id
+),
+january_movement AS (
+    SELECT
+        warehouse_id,
+        SUM(
+            CASE
+                WHEN transaction_type IN ('INBOUND', 'RETURN')
+                    THEN quantity
+                WHEN transaction_type IN ('OUTBOUND', 'DAMAGE')
+                    THEN -quantity
+                ELSE 0
+            END
+        ) AS net_movement
+    FROM inventory_transactions
+    WHERE transaction_date >= '2025-01-01'
+      AND transaction_date < '2025-02-01'
+    GROUP BY warehouse_id
+)
+SELECT
+    o.warehouse_id,
+    o.opening_qty,
+    COALESCE(j.net_movement, 0) AS january_net_movement,
+    o.opening_qty + COALESCE(j.net_movement, 0)
+        AS january_closing_qty
+FROM opening_stock o
+LEFT JOIN january_movement j
+    ON o.warehouse_id = j.warehouse_id
+ORDER BY o.warehouse_id;
