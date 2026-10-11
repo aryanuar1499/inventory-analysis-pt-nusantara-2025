@@ -906,3 +906,346 @@ ORDER BY estimated_gross_margin_pct DESC;
 -- Methodology Limitation:
 -- Gross margins are estimated using reference
 -- product unit costs, not validated historical COGS.
+
+-- ============================================================
+-- PHASE 03 - PART 04: MONTHLY SALES TREND ANALYSIS
+-- ============================================================
+
+-- STEP 44: Monthly Revenue & Sales Volume
+
+SELECT
+    DATE_TRUNC('month', sales_date)::date
+        AS sales_month,
+    COUNT(*) AS total_sales_records,
+    SUM(quantity) AS total_units_sold,
+    ROUND(
+        SUM(
+            quantity * unit_price *
+            (1 - discount_pct / 100)
+        ), 2
+    ) AS net_revenue
+FROM sales
+GROUP BY
+    DATE_TRUNC('month', sales_date)::date
+ORDER BY sales_month;
+
+-- ============================================================
+-- STEP 45: MONTHLY SALES QUANTITY TREND
+-- ============================================================
+-- Business Objective:
+-- Analyze monthly sales quantity, average units per sales
+-- record, and average daily units sold.
+--
+-- Key Insight:
+-- March recorded the highest average daily sales volume
+-- (602.58 units), while June recorded the lowest (558.60).
+-- February-to-March total units increased by 16.67%,
+-- but average daily units increased by only 5.38%.
+--
+-- Note:
+-- Daily averages use calendar days, not operating days.
+-- ============================================================
+
+WITH monthly_sales AS (
+    SELECT
+        DATE_TRUNC('month', sales_date)::date
+            AS sales_month,
+
+        COUNT(*) AS total_sales_records,
+
+        SUM(quantity) AS total_units_sold,
+
+        ROUND(
+            AVG(quantity), 2
+        ) AS avg_units_per_record
+
+    FROM sales
+
+    GROUP BY
+        DATE_TRUNC('month', sales_date)::date
+)
+
+SELECT
+    sales_month,
+    total_sales_records,
+    total_units_sold,
+    avg_units_per_record,
+
+    ROUND(
+        total_units_sold::numeric /
+        EXTRACT(
+            DAY FROM (
+                sales_month
+                + INTERVAL '1 month'
+                - INTERVAL '1 day'
+            )
+        ), 2
+    ) AS avg_daily_units
+
+FROM monthly_sales
+
+ORDER BY sales_month;
+
+-- STEP 45: DEBUGGING REFERENCE
+-- Historical failed query retained for learning purposes.
+-- Error: Ungrouped sales_date reference in the daily
+-- average calculation.
+-- Resolution: Calculate monthly aggregates using a CTE.
+
+/*
+SELECT
+    ...
+FROM sales
+GROUP BY
+    DATE_TRUNC('month', sales_date)::date
+ORDER BY sales_month;
+*/
+SELECT
+    DATE_TRUNC('month', sales_date)::date
+        AS sales_month,
+
+    COUNT(*) AS total_sales_records,
+
+    SUM(quantity) AS total_units_sold,
+
+    ROUND(
+        AVG(quantity), 2
+    ) AS avg_units_per_record,
+
+    ROUND(
+        SUM(quantity)::numeric /
+        EXTRACT(
+            DAY FROM (
+                DATE_TRUNC('month', sales_date)
+                + INTERVAL '1 month'
+                - INTERVAL '1 day'
+            )
+        ), 2
+    ) AS avg_daily_units
+
+FROM sales
+
+GROUP BY
+    DATE_TRUNC('month', sales_date)::date
+
+ORDER BY sales_month;
+
+-- ============================================================
+-- STEP 46: MONTH-OVER-MONTH REVENUE GROWTH
+-- ============================================================
+-- Business Objective:
+-- Measure monthly net revenue growth using the LAG()
+-- window function to compare consecutive months.
+--
+-- Key Findings:
+-- 1. Highest MoM growth: March (+17.56%).
+-- 2. Largest MoM decline: February (-13.28%).
+-- 3. January MoM growth is NULL because December 2024
+--    revenue is unavailable.
+--
+-- Business Interpretation:
+-- Monthly revenue fluctuated throughout 2025.
+-- Changes should be interpreted alongside sales volume
+-- and calendar-day differences.
+--
+-- Technical Notes:
+-- LAG() retrieves previous-month revenue.
+-- NULLIF() prevents division-by-zero errors.
+-- ============================================================
+
+WITH monthly_sales AS (
+    SELECT
+        DATE_TRUNC('month', sales_date)::date
+            AS sales_month,
+
+        ROUND(
+            SUM(
+                quantity * unit_price *
+                (1 - discount_pct / 100)
+            ), 2
+        ) AS net_revenue
+
+    FROM sales
+
+    GROUP BY
+        DATE_TRUNC('month', sales_date)::date
+),
+
+monthly_comparison AS (
+    SELECT
+        sales_month,
+        net_revenue,
+
+        LAG(net_revenue) OVER (
+            ORDER BY sales_month
+        ) AS previous_month_revenue
+
+    FROM monthly_sales
+)
+
+SELECT
+    sales_month,
+    net_revenue,
+    previous_month_revenue,
+
+    ROUND(
+        (
+            net_revenue - previous_month_revenue
+        ) / NULLIF(previous_month_revenue, 0) * 100,
+        2
+    ) AS mom_revenue_growth_pct
+
+FROM monthly_comparison
+
+ORDER BY sales_month;
+
+-- ============================================================
+-- STEP 47: MONTHLY GROSS PROFIT & MARGIN ANALYSIS
+-- ============================================================
+-- Business Objective:
+-- Evaluate monthly profitability by comparing net revenue,
+-- cost of goods sold (COGS), gross profit, and gross margin.
+--
+-- Key Findings:
+-- 1. Highest gross profit: March (Rp78,026,775).
+-- 2. Highest gross margin: July (21.90%).
+-- 3. Lowest gross margin: April (21.27%).
+-- 4. Monthly gross margins ranged from 21.27% to 21.90%.
+--
+-- Business Interpretation:
+-- The highest revenue month does not necessarily generate
+-- the highest gross margin percentage.
+-- Profitability should be evaluated using both gross profit
+-- and gross margin.
+--
+-- Technical Notes:
+-- COGS uses products.unit_cost as the reference unit cost.
+-- Gross profit excludes operating expenses and taxes.
+-- COGS is estimated using the product reference unit cost,
+-- not historical purchase costs.
+-- ============================================================
+
+WITH monthly_profitability AS (
+	SELECT
+		DATE_TRUNC('month', s.sales_date)::date
+			AS sales_month,
+		ROUND(
+			SUM(
+				s.quantity * s.unit_price *
+				(1 - s.discount_pct / 100)
+			), 2
+		) AS net_revenue,
+
+		ROUND(
+			SUM(
+				s.quantity * p.unit_cost
+			), 2
+		) AS total_cogs
+
+		FROM sales s
+
+		JOIN products p
+			ON s.product_id = p.product_id
+
+		GROUP BY
+			DATE_TRUNC('month', s.sales_date)::date
+)
+
+SELECT
+	sales_month,
+	net_revenue,
+	total_cogs,
+
+	ROUND(
+		net_revenue - total_cogs, 2
+	) AS gross_profit,
+
+	ROUND(
+		(net_revenue - total_cogs) /
+		NULLIF(net_revenue, 0) * 100,
+		2
+	) AS gross_margin_pct
+
+FROM monthly_profitability
+
+ORDER BY sales_month;
+
+-- ============================================================
+-- STEP 48: PEAK & LOWEST SALES MONTH ANALYSIS
+-- ============================================================
+-- Business Objective:
+-- Identify the highest and lowest revenue months using
+-- SQL window ranking functions.
+--
+-- Key Findings:
+-- 1. Highest monthly revenue: March (Rp364,363,775).
+-- 2. Lowest monthly revenue: February (Rp309,946,525).
+-- 3. March recorded the highest monthly units sold (18,680).
+-- 4. February recorded the lowest monthly units sold (16,011).
+--
+-- Business Interpretation:
+-- February's lower total revenue should be interpreted
+-- alongside its shorter calendar period.
+-- June had the lowest average daily units sold (558.60).
+-- Annual seasonality cannot be established from one year.
+--
+-- Technical Notes:
+-- RANK() is used to identify revenue extremes.
+-- DESC ranks highest values first.
+-- ASC ranks lowest values first.
+-- ============================================================
+
+WITH monthly_sales AS (
+    SELECT
+        DATE_TRUNC('month', sales_date)::date
+            AS sales_month,
+
+        COUNT(*) AS total_sales_records,
+
+        SUM(quantity) AS total_units_sold,
+
+        ROUND(
+            SUM(
+                quantity * unit_price *
+                (1 - discount_pct / 100)
+            ), 2
+        ) AS net_revenue
+
+    FROM sales
+
+    GROUP BY
+        DATE_TRUNC('month', sales_date)::date
+),
+
+monthly_ranking AS (
+    SELECT
+        sales_month,
+        total_sales_records,
+        total_units_sold,
+        net_revenue,
+
+        RANK() OVER (
+            ORDER BY net_revenue DESC
+        ) AS highest_revenue_rank,
+
+        RANK() OVER (
+            ORDER BY net_revenue ASC
+        ) AS lowest_revenue_rank
+
+    FROM monthly_sales
+)
+
+SELECT
+    sales_month,
+    total_sales_records,
+    total_units_sold,
+    net_revenue,
+    highest_revenue_rank,
+    lowest_revenue_rank
+
+FROM monthly_ranking
+
+WHERE highest_revenue_rank = 1
+    OR lowest_revenue_rank = 1
+
+ORDER BY net_revenue DESC;
