@@ -567,3 +567,57 @@ SELECT
 FROM vw_daily_inventory_balance
 GROUP BY warehouse_id
 ORDER BY stock_availability_rate_pct DESC;
+
+-- ============================================================
+-- SECTION 05: PRODUCT-LEVEL INVENTORY PERFORMANCE
+-- ============================================================
+
+-- 5.1 Product-Level Inventory Valuation
+-- Purpose:
+-- Reconstruct opening and closing inventory quantities
+-- for each product across all warehouses.
+--
+-- Validation:
+-- Total products: 40
+-- Opening inventory: 22,520 units
+-- Closing inventory: 13,729 units
+--
+-- Note:
+-- This analysis aggregates inventory by product_id.
+-- Warehouse-level differences are not shown in this query.
+
+WITH opening_stock AS (
+    SELECT
+        product_id,
+        SUM(opening_qty) AS opening_quantity
+    FROM opening_inventory
+    GROUP BY product_id
+),
+inventory_movement AS (
+    SELECT
+        product_id,
+        SUM(
+            CASE
+                WHEN transaction_type IN ('INBOUND', 'RETURN')
+                    THEN quantity
+                WHEN transaction_type IN ('OUTBOUND', 'DAMAGE')
+                    THEN -quantity
+                ELSE 0
+            END
+        ) AS net_movement
+    FROM inventory_transactions
+    GROUP BY product_id
+)
+SELECT
+    p.product_id,
+    p.product_name,
+    o.opening_quantity,
+    COALESCE(m.net_movement, 0) AS net_movement,
+    o.opening_quantity + COALESCE(m.net_movement, 0) AS closing_quantity,
+    p.unit_cost
+FROM products p
+JOIN opening_stock o
+    ON p.product_id = o.product_id
+LEFT JOIN inventory_movement m
+    ON p.product_id = m.product_id
+ORDER BY p.product_id;
