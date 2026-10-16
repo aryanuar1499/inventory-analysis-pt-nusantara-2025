@@ -165,3 +165,76 @@ The following product–warehouse combinations recorded the highest numbers of z
 The combinations with the highest zero-stock exposure warrant further review of demand patterns, replenishment schedules, and inventory allocation.
 
 A stockout episode represents a consecutive sequence of days with zero end-of-day stock for
+
+## 5. Product-Level Inventory Turnover Analysis
+
+### 5.1 Methodology
+
+Product-level inventory turnover was calculated using estimated Cost of Goods Sold (COGS) divided by average inventory value.
+
+Average inventory value was calculated using the opening and closing inventory values for 2025.
+
+Estimated COGS was calculated from sales quantities multiplied by fixed product unit costs. Therefore, these values represent analytical estimates rather than accounting-verified COGS.
+
+### 5.2 Key Findings
+
+- Total Estimated COGS: **IDR 3,218,678,000**
+- Average Inventory Value: **IDR 280,208,250**
+- Overall Inventory Turnover: **11.49 times annually**
+- Products analyzed: **40**
+
+The highest product-level inventory turnover was recorded by **P004 — Beras Premium 5kg (16.32×)**, followed by **P021 — Detergen Bubuk 800g (16.21×)**.
+
+The lowest inventory turnover was recorded by **P028 — Cairan Pembersih Kaca 500ml (5.79×)** and **P039 — Wadah Makanan Plastik (5.81×)**.
+
+Product-level reconciliation confirmed that aggregated estimated COGS and average inventory values were consistent with company-level inventory KPIs.
+
+## 6. Inventory Movement Classification
+
+### 6.1 Classification Methodology
+
+Products were classified using PostgreSQL's `NTILE(4)` window function, ranking annual inventory turnover from highest to lowest.
+
+- **Fast-Moving:** Top 25% (10 products)
+- **Medium-Moving:** Middle 50% (20 products)
+- **Slow-Moving:** Bottom 25% (10 products)
+
+This classification is relative to the analyzed product portfolio and does not represent universal industry thresholds.
+
+### 6.2 Classification Results
+
+| Classification | Products | Estimated COGS Contribution | Average Inventory Value Share |
+|---|---:|---:|---:|
+| Fast-Moving | 10 | 45.29% | 33.89% |
+| Medium-Moving | 20 | 37.14% | 39.53% |
+| Slow-Moving | 10 | 17.57% | 26.57% |
+
+Fast-Moving products accounted for **45.29% of estimated COGS**, while representing **33.89% of average inventory value**.
+
+In contrast, Slow-Moving products contributed **17.57% of estimated COGS**, while accounting for **26.57% of average inventory value**.
+
+This indicates relatively slower inventory capital turnover within the Slow-Moving group.
+
+### 6.3 Slow-Moving Inventory Priorities
+
+The Slow-Moving group contained 10 products with a combined average inventory value of **IDR 74,455,500**.
+
+Products with the highest inventory value exposure included:
+
+1. **P035 — Rak Serbaguna 3 Tingkat:** IDR 13,387,500 (17.98%)
+2. **P011 — Shampoo 170ml:** IDR 11,025,000 (14.81%)
+3. **P039 — Wadah Makanan Plastik:** IDR 10,560,000 (14.18%)
+
+The five products with the highest average inventory values accounted for approximately **68.68%** of the Slow-Moving group's average inventory value.
+
+These products should be prioritized for further review of demand patterns, replenishment decisions, and inventory holding requirements.
+
+### 6.4 Business Implications
+
+The analysis suggests three areas for management consideration:
+
+- **Fast-Moving products:** Review replenishment reliability and stock availability to reduce potential stockout exposure.
+- **Medium-Moving products:** Maintain balanced inventory policies while monitoring changes in demand and turnover.
+- **Slow-Moving products:** Evaluate inventory levels, purchasing frequency, and storage requirements before making stock reduction decisions.
+
+Slow-Moving classification does not necessarily indicate unprofitability, dead stock, or realized financial losses. Further information on sales margins, demand variability, lead times, and holding costs would be needed to support specific operational decisions.
