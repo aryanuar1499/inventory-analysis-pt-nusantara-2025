@@ -1631,3 +1631,337 @@ SELECT
         2
     ) AS total_average_inventory_value
 FROM classified_products;
+
+-- ============================================================
+-- SQL 5.4A - PRODUCT-LEVEL STOCKOUT EXPOSURE
+-- ============================================================
+-- Purpose:
+-- Measure product-level exposure to zero closing stock
+-- across all warehouses throughout 2025.
+--
+-- Data Source:
+-- vw_daily_inventory_balance
+--
+-- Methodology:
+-- Count product-warehouse-day observations with
+-- daily_closing_stock = 0.
+-- Divide by total product-warehouse-day observations.
+--
+-- Validation Results:
+-- Total products: 40
+-- Warehouse-days per product: 1,095
+-- Products with zero-stock exposure: 22
+-- Products without zero-stock exposure: 18
+--
+-- Highest Zero-Stock Exposure:
+-- P040: 17 warehouse-days (1.55%)
+-- P039: 14 warehouse-days (1.28%)
+-- P038: 13 warehouse-days (1.19%)
+--
+-- Business Insight:
+-- P040 and P039 are classified as Slow-Moving but
+-- also experience relatively high zero-stock exposure.
+-- This may indicate uneven inventory distribution
+-- across warehouses and requires further analysis.
+--
+-- Limitations:
+-- Zero closing stock is not proof of lost sales.
+-- Warehouse-days are not unique calendar days.
+
+SELECT
+    product_id,
+    COUNT(*) AS total_warehouse_days,
+    COUNT(*) FILTER (
+        WHERE daily_closing_stock = 0
+    ) AS zero_stock_days,
+    ROUND(
+        COUNT(*) FILTER (
+            WHERE daily_closing_stock = 0
+        ) * 100.0 / NULLIF(COUNT(*), 0),
+        2
+    ) AS zero_stock_exposure_pct
+FROM vw_daily_inventory_balance
+GROUP BY product_id
+ORDER BY
+    zero_stock_days DESC,
+    product_id;
+
+-- ============================================================
+-- SQL 5.4B - INVENTORY TURNOVER VS STOCKOUT EXPOSURE
+-- ============================================================
+-- Purpose:
+-- Combine product-level inventory turnover classification
+-- with zero-closing-stock exposure across warehouses.
+--
+-- Methodology:
+-- Join classified product turnover results with
+-- product-level stockout exposure using product_id.
+--
+-- Validation Results:
+-- Total products: 40
+-- Products with zero-stock exposure: 22
+-- Products without zero-stock exposure: 18
+--
+-- Key Findings:
+-- P040: Slow-Moving | Turnover 7.09 | 17 zero-stock warehouse-days
+-- P039: Slow-Moving | Turnover 5.81 | 14 zero-stock warehouse-days
+-- P019: Slow-Moving | Turnover 6.70 | 12 zero-stock warehouse-days
+-- P034: Slow-Moving | Turnover 8.61 | 10 zero-stock warehouse-days
+--
+-- Business Insight:
+-- Slow-Moving classification does not guarantee that
+-- inventory is continuously available at every warehouse.
+-- Products with both low turnover and zero-stock exposure
+-- should be reviewed for possible inventory imbalances.
+--
+-- Limitations:
+-- Zero closing stock does not prove lost sales.
+-- Inventory imbalances require warehouse-level validation.
+
+WITH product_turnover AS (
+                        WITH opening_stock AS (
+                        SELECT
+                            product_id,
+                            SUM(opening_qty) AS opening_quantity
+                        FROM opening_inventory
+                        GROUP BY product_id
+                    ),
+                    inventory_movement AS (
+                        SELECT
+                            product_id,
+                            SUM(
+                                CASE
+                                    WHEN transaction_type IN ('INBOUND', 'RETURN')
+                                        THEN quantity
+                                    WHEN transaction_type IN ('OUTBOUND', 'DAMAGE')
+                                        THEN -quantity
+                                    ELSE 0
+                                END
+                            ) AS net_movement
+                        FROM inventory_transactions
+                        GROUP BY product_id
+                    ),
+                    inventory_balance AS (
+                        SELECT
+                            p.product_id,
+                            p.product_name,
+                            p.category,
+                            o.opening_quantity,
+                            o.opening_quantity + COALESCE(m.net_movement, 0)
+                                AS closing_quantity,
+                            p.unit_cost
+                        FROM products p
+                        JOIN opening_stock o
+                            ON p.product_id = o.product_id
+                        LEFT JOIN inventory_movement m
+                            ON p.product_id = m.product_id
+                    ),
+                    average_inventory AS (
+                        SELECT
+                            product_id,
+                            product_name,
+                            category,
+                            ROUND(
+                                (
+                                    opening_quantity * unit_cost
+                                    + closing_quantity * unit_cost
+                                ) / 2.0,
+                                2
+                            ) AS average_inventory_value
+                        FROM inventory_balance
+                    ),
+                    product_cogs AS (
+                        SELECT
+                            p.product_id,
+                            COALESCE(SUM(s.quantity * p.unit_cost), 0)
+                                AS estimated_cogs
+                        FROM products p
+                        LEFT JOIN sales s
+                            ON p.product_id = s.product_id
+                        GROUP BY p.product_id
+                    )
+                    SELECT
+                        a.product_id,
+                        a.product_name,
+                        a.category,
+                        c.estimated_cogs,
+                        a.average_inventory_value,
+                        ROUND(
+                            c.estimated_cogs
+                            / NULLIF(a.average_inventory_value, 0),
+                            2
+                        ) AS inventory_turnover
+                    FROM average_inventory a
+                    JOIN product_cogs c
+                        ON a.product_id = c.product_id
+),
+ranked_products AS (
+    SELECT
+        product_id,
+        product_name,
+        category,
+        estimated_cogs,
+        average_inventory_value,
+        inventory_turnover,
+        NTILE(4) OVER (
+            ORDER BY inventory_turnover DESC, product_id
+        ) AS turnover_quartile
+    FROM product_turnover
+),
+classified_products AS (
+    SELECT
+        *,
+        CASE
+            WHEN turnover_quartile = 1 THEN 'Fast-Moving'
+            WHEN turnover_quartile IN (2, 3) THEN 'Medium-Moving'
+            ELSE 'Slow-Moving'
+        END AS movement_classification
+    FROM ranked_products
+),
+stockout_exposure AS (
+    SELECT
+        product_id,
+        COUNT(*) AS total_warehouse_days,
+        COUNT(*) FILTER (
+            WHERE daily_closing_stock = 0
+        ) AS zero_stock_days,
+        ROUND(
+            COUNT(*) FILTER (
+                WHERE daily_closing_stock = 0
+            ) * 100.0 / NULLIF(COUNT(*), 0),
+            2
+        ) AS zero_stock_exposure_pct
+    FROM vw_daily_inventory_balance
+    GROUP BY product_id
+)
+SELECT
+    c.product_id,
+    c.product_name,
+    c.category,
+    c.inventory_turnover,
+    c.movement_classification,
+    s.zero_stock_days,
+    s.zero_stock_exposure_pct
+FROM classified_products c
+LEFT JOIN stockout_exposure s
+    ON c.product_id = s.product_id
+ORDER BY
+    s.zero_stock_days DESC NULLS LAST,
+    c.product_id;
+
+-- ============================================================
+-- SQL 5.4C - WAREHOUSE-LEVEL STOCK DISTRIBUTION
+-- ============================================================
+-- Purpose:
+-- Examine warehouse-level zero-stock exposure and
+-- daily closing stock distribution for P039 and P040.
+--
+-- Methodology:
+-- Aggregate daily closing stock by product and warehouse.
+-- Calculate zero-stock days, average, minimum, and maximum
+-- daily closing stock throughout 2025.
+--
+-- Validation Results:
+-- Total rows: 6
+-- Products: P039, P040
+-- Warehouses per product: 3
+-- Observations per warehouse: 365
+--
+-- Key Findings:
+-- P039:
+-- WH001: 3 zero-stock days | Avg stock 84.36
+-- WH002: 5 zero-stock days | Avg stock 70.60
+-- WH003: 6 zero-stock days | Avg stock 73.18
+--
+-- P040:
+-- WH001: 7 zero-stock days | Avg stock 56.04
+-- WH002: 5 zero-stock days | Avg stock 48.76
+-- WH003: 5 zero-stock days | Avg stock 40.09
+--
+-- Business Insight:
+-- Higher average daily stock does not necessarily
+-- eliminate zero-stock exposure.
+-- Warehouse-level inventory patterns require further
+-- investigation before recommending stock transfers.
+--
+-- Limitations:
+-- Annual averages do not reveal whether other warehouses
+-- had available stock on the same zero-stock dates.
+-- Transfer feasibility also depends on operational factors.
+
+SELECT
+    product_id,
+    warehouse_id,
+    COUNT(*) AS total_days,
+    COUNT(*) FILTER (
+        WHERE daily_closing_stock = 0
+    ) AS zero_stock_days,
+    ROUND(
+        AVG(daily_closing_stock),
+        2
+    ) AS avg_daily_closing_stock,
+    MIN(daily_closing_stock) AS min_closing_stock,
+    MAX(daily_closing_stock) AS max_closing_stock
+FROM vw_daily_inventory_balance
+WHERE product_id IN ('P039', 'P040')
+GROUP BY
+    product_id,
+    warehouse_id
+ORDER BY
+    product_id,
+    warehouse_id;
+
+-- ============================================================
+-- SQL 5.4D - SAME-DATE CROSS-WAREHOUSE STOCK AVAILABILITY
+-- ============================================================
+-- Purpose:
+-- Identify other warehouses with positive closing stock
+-- when a warehouse has zero closing stock for the same
+-- product on the same date.
+--
+-- Methodology:
+-- Use a self-join on the daily inventory balance view,
+-- matching stock_date and product_id while comparing
+-- different warehouse_id values.
+--
+-- Validation Results:
+-- Products analyzed: P039 and P040
+-- P039: 14 zero-stock warehouse-days, 28 matched rows
+-- P040: 17 zero-stock warehouse-days, 34 matched rows
+-- Total: 31 zero-stock warehouse-days, 62 matched rows
+--
+-- Key Finding:
+-- For all 31 observed zero-stock warehouse-days,
+-- both other warehouses had positive closing stock.
+--
+-- Business Insight:
+-- Cross-warehouse stock availability indicates
+-- opportunities to investigate inventory redistribution
+-- before making additional purchasing decisions.
+--
+-- Limitations:
+-- Positive stock at another warehouse does not
+-- automatically mean that stock is transferable.
+-- Safety stock, local demand, transfer lead time,
+-- and operational costs require further evaluation.
+
+SELECT
+    a.stock_date,
+    a.product_id,
+    a.warehouse_id AS zero_stock_warehouse,
+    b.warehouse_id AS available_warehouse,
+    b.daily_closing_stock AS available_stock
+FROM vw_daily_inventory_balance a
+JOIN vw_daily_inventory_balance b
+    ON a.stock_date = b.stock_date
+    AND a.product_id = b.product_id
+    AND a.warehouse_id <> b.warehouse_id
+WHERE
+    a.product_id IN ('P039', 'P040')
+    AND a.daily_closing_stock = 0
+    AND b.daily_closing_stock > 0
+ORDER BY
+    a.product_id,
+    a.stock_date,
+    a.warehouse_id,
+    b.warehouse_id;

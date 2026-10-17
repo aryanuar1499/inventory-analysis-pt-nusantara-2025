@@ -238,3 +238,90 @@ The analysis suggests three areas for management consideration:
 - **Slow-Moving products:** Evaluate inventory levels, purchasing frequency, and storage requirements before making stock reduction decisions.
 
 Slow-Moving classification does not necessarily indicate unprofitability, dead stock, or realized financial losses. Further information on sales margins, demand variability, lead times, and holding costs would be needed to support specific operational decisions.
+
+## 7. Inventory Risk Prioritization and Cross-Warehouse Availability
+
+### 7.1 Analysis Objective
+
+This analysis evaluates the relationship between product-level inventory turnover, zero-closing-stock exposure, and warehouse-level stock distribution.
+
+The objective is to identify products requiring further inventory investigation and assess whether stock is available at other warehouses when a particular warehouse records zero closing stock.
+
+### 7.2 Methodology
+
+The analysis was conducted using four SQL queries:
+
+- **SQL 5.4A — Product-Level Stockout Exposure:** Calculated zero-closing-stock warehouse-days and exposure percentages for each product.
+- **SQL 5.4B — Inventory Turnover vs Stockout Exposure:** Combined inventory turnover classifications with zero-stock exposure.
+- **SQL 5.4C — Warehouse-Level Stock Distribution:** Examined daily closing stock patterns for products P039 and P040 across three warehouses.
+- **SQL 5.4D — Same-Date Cross-Warehouse Stock Availability:** Used a self-join to identify warehouses with positive closing stock when another warehouse recorded zero closing stock for the same product and date.
+
+The analysis uses end-of-day inventory balances for the 2025 reporting period.
+
+### 7.3 Key Findings
+
+**Finding 1 — Zero-Stock Exposure Is Concentrated in Selected Products**
+
+Out of 40 products, 22 experienced at least one zero-closing-stock warehouse-day, while 18 recorded no such observations.
+
+The products with the highest zero-stock exposure were:
+
+| Product | Zero-Stock Warehouse-Days | Exposure |
+|---|---:|---:|
+| P040 — Kotak Penyimpanan Plastik | 17 | 1.55% |
+| P039 — Wadah Makanan Plastik | 14 | 1.28% |
+| P038 — Gantungan Baju 10pcs | 13 | 1.19% |
+| P019 — Cotton Buds 100pcs | 12 | 1.10% |
+| P034 — Tempat Sampah 20L | 10 | 0.91% |
+
+Each product was evaluated across 1,095 warehouse-day observations.
+
+**Finding 2 — Slow-Moving Products Can Experience Zero-Stock Exposure**
+
+P040 and P039 were classified as Slow-Moving, with annual inventory turnover ratios of 7.09× and 5.81×, respectively.
+
+Despite their relatively low turnover, both products experienced zero closing stock at individual warehouses.
+
+This demonstrates that company-level inventory movement classifications do not necessarily represent stock availability at each warehouse.
+
+**Finding 3 — Warehouse-Level Stock Patterns Differ**
+
+For P039, WH003 recorded six zero-stock days, compared with five at WH002 and three at WH001.
+
+For P040, WH001 recorded seven zero-stock days, while WH002 and WH003 each recorded five.
+
+These differences indicate that inventory availability varies by warehouse and reporting date.
+
+**Finding 4 — Other Warehouses Held Positive Stock During All Observed Zero-Stock Events**
+
+The same-date cross-warehouse analysis identified 31 zero-stock warehouse-day observations across P039 and P040.
+
+For each observation, both other warehouses recorded positive closing stock on the same date.
+
+The self-join returned 62 rows because each zero-stock warehouse-day matched two warehouses with positive closing stock.
+
+This provides evidence of differences in inventory availability across warehouse locations and supports further investigation of potential inventory redistribution opportunities.
+
+### 7.4 Business Implications
+
+The results suggest that inventory management decisions should consider both product-level turnover and warehouse-level stock availability.
+
+Products classified as Slow-Moving should not automatically be treated as overstocked at every location.
+
+Before increasing purchasing quantities, management should evaluate whether existing inventory can be redistributed from other warehouses without creating additional shortages.
+
+Priority should be given to investigating products with recurring zero-stock exposure, particularly P040 and P039.
+
+### 7.5 Recommended Follow-Up
+
+Management should assess warehouse-specific demand, safety stock requirements, replenishment lead times, and transfer costs before authorizing inventory transfers.
+
+Future analysis could evaluate whether stock redistribution policies would reduce zero-stock exposure while maintaining sufficient inventory at supplying warehouses.
+
+### 7.6 Analytical Limitations
+
+- Zero closing stock does not establish the duration of stock unavailability during the day.
+- Zero-stock observations do not directly measure lost sales or unmet customer demand.
+- Positive stock in another warehouse does not prove that an internal transfer was operationally feasible.
+- Inventory turnover is calculated using estimated COGS and a two-point average inventory valuation.
+- The analysis identifies potential inventory distribution issues but does not establish their underlying causes.
