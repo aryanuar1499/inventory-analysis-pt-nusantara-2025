@@ -325,3 +325,103 @@ Future analysis could evaluate whether stock redistribution policies would reduc
 - Positive stock in another warehouse does not prove that an internal transfer was operationally feasible.
 - Inventory turnover is calculated using estimated COGS and a two-point average inventory valuation.
 - The analysis identifies potential inventory distribution issues but does not establish their underlying causes.
+
+## 8. Executive Summary & Strategic Recommendations
+
+### 8.1 Executive Summary
+
+The 2025 Inventory KPI & Stock Performance Analysis evaluated inventory valuation, turnover efficiency, stock availability, product movement classification, and warehouse-level inventory risks across PT Nusantara Distribution.
+
+The analysis covered 40 products across three warehouses, using inventory transactions, sales records, opening inventory, and daily closing stock balances.
+
+The results provide a quantitative foundation for evaluating inventory efficiency and identifying opportunities to improve inventory allocation and replenishment decisions.
+
+### 8.2 Key Performance Indicators
+
+| KPI | Result |
+|---|---:|
+| Opening Inventory Value | Rp350,900,000 |
+| Closing Inventory Value | Rp209,516,500 |
+| Average Inventory Value | Rp280,208,250 |
+| Estimated COGS | Rp3,218,678,000 |
+| Annual Inventory Turnover | 11.49× |
+| Days Inventory Outstanding (DIO) | 31.78 days |
+| End-of-Day Stock Availability | 99.71% |
+| Zero-Stock Warehouse-Days | 126 |
+| Negative Closing Stock Observations | 0 |
+
+Inventory turnover and DIO were calculated using estimated COGS and the average of opening and closing inventory values.
+
+Stock availability represents the percentage of product-warehouse-day observations with positive end-of-day inventory balances.
+
+### 8.3 Product Movement Classification
+
+Products were classified into relative inventory turnover quartiles:
+
+| Classification | Products | Share of Estimated COGS |
+|---|---:|---:|
+| Fast-Moving | 10 | 45.29% |
+| Medium-Moving | 20 | 37.14% |
+| Slow-Moving | 10 | 17.57% |
+
+Fast-Moving products accounted for 45.29% of estimated COGS while representing only 25% of the product portfolio.
+
+Slow-Moving products accounted for 26.57% of average inventory value but contributed 17.57% of estimated COGS.
+
+These findings suggest opportunities to review capital allocation across product groups without assuming that lower-turnover products are necessarily unprofitable.
+
+### 8.4 Key Inventory Risks
+
+The analysis identified 126 zero-closing-stock observations across the product-warehouse-day dataset.
+
+Products P040 and P039 demonstrated relatively low inventory turnover alongside recurring warehouse-level zero-stock exposure.
+
+Further investigation showed that both other warehouses maintained positive closing stock during all 31 zero-stock warehouse-day observations involving these two products.
+
+This indicates differences in inventory availability between warehouse locations and supports a review of inventory distribution practices.
+
+### 8.5 Strategic Recommendations
+
+**Recommendation 1 — Prioritize Replenishment Based on Demand and Availability**
+
+Develop product-level replenishment priorities using inventory turnover, warehouse-specific demand, stock availability, and replenishment lead times rather than turnover alone.
+
+**Recommendation 2 — Review Cross-Warehouse Inventory Redistribution**
+
+Investigate potential stock transfers for products experiencing zero-stock exposure while other warehouses retain positive stock.
+
+Transfer decisions should account for safety stock, expected demand, transfer lead time, and logistics costs.
+
+**Recommendation 3 — Review Slow-Moving Inventory Exposure**
+
+Evaluate purchasing quantities and inventory holding policies for Slow-Moving products, particularly those contributing the largest average inventory values.
+
+Any reduction in inventory should consider customer demand, supplier constraints, and service-level requirements.
+
+**Recommendation 4 — Establish Routine Inventory KPI Monitoring**
+
+Implement periodic monitoring of inventory turnover, DIO, end-of-day stock availability, and warehouse-level zero-stock exposure.
+
+These indicators can support earlier identification of inventory risks and more consistent operational decision-making.
+
+### 8.6 Analytical Limitations
+
+The analysis is subject to several limitations:
+
+- Estimated COGS is based on sales quantities multiplied by fixed product unit costs and is not an independently verified accounting COGS figure.
+- Average inventory value uses opening and closing balances rather than a daily weighted average.
+- Inventory turnover classifications are relative to the analyzed product portfolio.
+- End-of-day stock availability does not measure order fulfillment or intraday stock availability.
+- Zero closing stock does not independently establish lost sales.
+- Positive stock at another warehouse does not guarantee that inventory can be transferred without affecting local service levels.
+- Profitability, carrying costs, and financial returns cannot be fully evaluated without additional financial and operational data.
+
+### 8.7 Final Conclusion
+
+The analysis demonstrates that inventory efficiency and warehouse-level stock availability should be evaluated together.
+
+Although overall end-of-day stock availability reached 99.71%, selected products experienced recurring zero-stock exposure while other warehouses held positive inventory.
+
+The findings support a more targeted inventory management approach that combines turnover analysis, replenishment planning, and warehouse-level inventory allocation.
+
+These results provide a foundation for subsequent business recommendations, reporting dashboards, and operational improvement initiatives.
