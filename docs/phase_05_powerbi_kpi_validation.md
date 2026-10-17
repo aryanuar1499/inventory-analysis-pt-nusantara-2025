@@ -145,3 +145,87 @@ The KPI can be used to evaluate revenue contributions across product categories,
 - **Validation:** Passed
 
 ---
+
+### 1.8 KPI 03 — Closing Inventory Value
+
+#### Business Objective
+
+Calculate the total value of closing inventory using the latest available stock date within the active reporting context.
+
+This KPI measures the monetary value of inventory on hand based on product unit costs and supports inventory valuation and stock management decisions.
+
+#### DAX Measure
+
+```dax
+Closing Inventory Value =
+VAR LastStockDate =
+    MAX('public vw_daily_inventory_balance'[stock_date])
+RETURN
+    CALCULATE(
+        SUMX(
+            'public vw_daily_inventory_balance',
+            'public vw_daily_inventory_balance'[daily_closing_stock]
+                * RELATED('public products'[unit_cost])
+        ),
+        'public vw_daily_inventory_balance'[stock_date] = LastStockDate
+    )
+```
+
+**Calculation Logic:**
+
+- `VAR` stores the latest stock date in the current filter context.
+- `RETURN` evaluates the final inventory valuation expression.
+- `CALCULATE()` applies the selected closing stock date.
+- `SUMX()` multiplies stock quantity by product unit cost for each inventory record and sums the results.
+- `RELATED()` retrieves the corresponding product unit cost through the active relationship.
+
+#### PostgreSQL Validation Query
+
+```sql
+SELECT
+    ROUND(
+        SUM(
+            v.daily_closing_stock * p.unit_cost
+        ),
+        2
+    ) AS closing_inventory_value
+FROM vw_daily_inventory_balance v
+JOIN products p
+    ON v.product_id = p.product_id
+WHERE v.stock_date = '2025-12-31';
+```
+
+#### Validation Results
+
+| Validation Component | Result |
+|---|---:|
+| Power BI DAX | 209,516,500.00 |
+| PostgreSQL SQL | 209,516,500.00 |
+| Difference | 0.00 |
+| Validation Status | PASS |
+
+**Validation Conditions:**
+
+- The Power BI Card was evaluated without active report filters.
+- The latest stock date was December 31, 2025.
+- Inventory quantities were multiplied by their corresponding product unit costs.
+- Both calculations returned identical results.
+
+#### Business Interpretation
+
+The closing inventory value on **December 31, 2025** was **209,516,500.00** in the dataset's monetary units.
+
+This KPI represents the cost-based value of inventory remaining at the reporting date, not sales revenue or profit.
+
+Closing Inventory Value is a **semi-additive measure**: it can be aggregated across products and warehouses for the same date, but values from different dates should not be summed together.
+
+#### Power BI Implementation
+
+- **Visual:** Card
+- **Measure:** `Closing Inventory Value`
+- **Reference Date:** December 31, 2025
+- **Display Units:** None
+- **Decimal Places:** 2
+- **Validation:** Passed
+
+---
