@@ -70,6 +70,7 @@ This result represents sales volume rather than revenue or profit. It provides a
 | KPI | DAX Result | SQL Result | Difference | Status |
 |---|---:|---:|---:|---|
 | Total Units Sold | 209,924 | 209,924 | 0 | PASS |
+| Inventory Turnover Ratio | 11.49 | 11.49 | 0.00 | PASS |
 
 *Additional validated KPIs will be documented in subsequent sections.*
 
@@ -224,6 +225,142 @@ Closing Inventory Value is a **semi-additive measure**: it can be aggregated acr
 - **Visual:** Card
 - **Measure:** `Closing Inventory Value`
 - **Reference Date:** December 31, 2025
+- **Display Units:** None
+- **Decimal Places:** 2
+- **Validation:** Passed
+
+---
+
+### 1.9 KPI 04 — Inventory Turnover Ratio
+
+#### Business Objective
+
+Measure how efficiently inventory is converted into sales during the 2025 reporting period using estimated cost of goods sold and average inventory value.
+
+#### Calculation Method
+
+Inventory Turnover Ratio = Estimated COGS / Average Inventory Value
+
+Average Inventory Value = (Opening Inventory Value + Closing Inventory Value) / 2
+
+The calculation uses beginning and ending inventory values rather than an average of daily inventory balances.
+
+#### Supporting DAX Measures
+
+**Estimated COGS**
+
+```dax
+Estimated COGS =
+SUMX(
+    'public sales',
+    'public sales'[quantity]
+        * RELATED('public products'[unit_cost])
+)
+```
+
+**Opening Inventory Value**
+
+```dax
+Opening Inventory Value =
+SUMX(
+    'public opening_inventory',
+    'public opening_inventory'[opening_qty]
+        * RELATED('public products'[unit_cost])
+)
+```
+
+**Average Inventory Value**
+
+```dax
+Average Inventory Value =
+DIVIDE(
+    [Opening Inventory Value] + [Closing Inventory Value],
+    2
+)
+```
+
+#### Final DAX Measure
+
+```dax
+Inventory Turnover Ratio =
+DIVIDE(
+    [Estimated COGS],
+    [Average Inventory Value]
+)
+```
+
+#### PostgreSQL Validation Query
+
+```sql
+WITH estimated_cogs AS (
+    SELECT
+        SUM(s.quantity * p.unit_cost) AS total_cogs
+    FROM sales s
+    JOIN products p
+        ON s.product_id = p.product_id
+),
+opening_value AS (
+    SELECT
+        SUM(o.opening_qty * p.unit_cost) AS opening_inventory_value
+    FROM opening_inventory o
+    JOIN products p
+        ON o.product_id = p.product_id
+),
+closing_value AS (
+    SELECT
+        SUM(v.daily_closing_stock * p.unit_cost) AS closing_inventory_value
+    FROM vw_daily_inventory_balance v
+    JOIN products p
+        ON v.product_id = p.product_id
+    WHERE v.stock_date = '2025-12-31'
+)
+SELECT
+    ROUND(
+        c.total_cogs /
+        NULLIF(
+            (o.opening_inventory_value + cl.closing_inventory_value) / 2,
+            0
+        ),
+        2
+    ) AS inventory_turnover_ratio
+FROM estimated_cogs c
+CROSS JOIN opening_value o
+CROSS JOIN closing_value cl;
+```
+
+#### Validation Results
+
+| Component | PostgreSQL / Power BI Result |
+|---|---:|
+| Estimated COGS | 3,218,678,000.00 |
+| Opening Inventory Value | 350,900,000.00 |
+| Closing Inventory Value | 209,516,500.00 |
+| Average Inventory Value | 280,208,250.00 |
+| Inventory Turnover Ratio (SQL) | 11.49 |
+| Inventory Turnover Ratio (DAX) | 11.49 |
+| Displayed Difference | 0.00 |
+| Validation Status | PASS — 2 Decimal Places |
+
+#### Business Interpretation
+
+The estimated inventory turnover ratio for 2025 was **11.49 times**.
+
+This indicates that the annual estimated cost of goods sold was approximately 11.49 times the average inventory value calculated from beginning and ending inventory balances.
+
+The result should be interpreted alongside stockout risk, demand patterns, and industry benchmarks.
+
+#### Methodology and Limitations
+
+- Estimated COGS uses the current product unit cost rather than historical transaction-level costs.
+- Average Inventory Value uses two inventory valuation points: beginning and end of 2025.
+- The KPI has been validated for the full-year 2025 reporting context without active filters.
+- Additional modeling may be required for accurate turnover calculations under arbitrary date slicers.
+- Closing inventory is semi-additive across time.
+
+#### Power BI Implementation
+
+- **Visual:** Card
+- **Measure:** `Inventory Turnover Ratio`
 - **Display Units:** None
 - **Decimal Places:** 2
 - **Validation:** Passed
