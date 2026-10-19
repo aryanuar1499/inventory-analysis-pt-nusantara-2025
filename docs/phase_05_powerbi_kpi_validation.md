@@ -72,7 +72,8 @@ This result represents sales volume rather than revenue or profit. It provides a
 | Total Units Sold | 209,924 | 209,924 | 0 | PASS |
 | Inventory Turnover Ratio | 11.49 | 11.49 | 0.00 | PASS |
 | Days Inventory Outstanding | 31.78 | 31.78 | 0.00 | PASS |
-|Zero Stock Exposure (%) | 0,29% | 0,29% | 0.00 | PASS
+| Zero Stock Exposure (%) | 0,29% | 0,29% | 0.00 | PASS |
+| Total Stock on Hand | 13.729 | 13.729 | 0.00 | PASS |
 
 *Additional validated KPIs will be documented in subsequent sections.*
 
@@ -552,3 +553,77 @@ FROM vw_daily_inventory_balance;
 - The calculation uses daily closing stock, not opening stock.
 - The DAX measure responds to the applicable Power BI filter context.
 - Zero stock does not necessarily indicate lost sales or unmet customer demand.
+
+### 1.12 KPI 07 — Total Stock on Hand
+
+#### Business Objective
+
+Measure the total quantity of inventory remaining across all product–warehouse combinations at the end of the reporting period.
+
+This KPI provides visibility into physical inventory levels and complements Closing Inventory Value, which measures inventory in monetary terms.
+
+#### Calculation
+
+Total Stock on Hand = SUM(Daily Closing Stock at the Latest Reporting Date)
+
+**Validated Results:**
+- Reporting Date: 2025-12-31
+- Total Stock on Hand: 13,729 units
+
+#### Business Interpretation
+
+At the end of 2025, the company recorded 13,729 units of closing inventory across its product–warehouse combinations.
+
+This KPI helps management understand the quantity of inventory remaining at the reporting date and supports inventory monitoring and operational planning.
+
+**Important Considerations:**
+- Inventory quantities are calculated at the latest reporting date, not accumulated across all historical dates.
+- Summing stock quantities across different products assumes their units of measurement are comparable.
+- Total Stock on Hand represents recorded closing inventory, not necessarily inventory available for immediate sale.
+
+#### DAX Measure
+
+```dax
+Total Stock on Hand =
+VAR LastStockDate =
+    MAX('public vw_daily_inventory_balance'[stock_date])
+RETURN
+    CALCULATE(
+        SUM('public vw_daily_inventory_balance'[daily_closing_stock]),
+        'public vw_daily_inventory_balance'[stock_date] = LastStockDate
+    )
+```
+
+**Measure Format:**
+- Data type: Numeric
+- Format: Whole number
+- Decimal places: 0
+- Display units: None
+
+#### PostgreSQL Validation
+
+```sql
+SELECT
+    stock_date,
+    SUM(daily_closing_stock) AS total_stock_on_hand
+FROM vw_daily_inventory_balance
+WHERE stock_date = (
+    SELECT MAX(stock_date)
+    FROM vw_daily_inventory_balance
+)
+GROUP BY stock_date;
+```
+
+**Validation Results:**
+
+| Metric | PostgreSQL | Power BI |
+|---|---:|---:|
+| Total Stock on Hand | 13,729 | 13,729 |
+
+**Validation Status:** PASSED — PostgreSQL and Power BI results match.
+
+**Technical Notes:**
+- The measure uses the latest stock date within the applicable filter context.
+- Inventory quantities are summed only for the selected reporting date to prevent double counting across historical dates.
+- The measure is designed to respond to applicable report filters.
+- Results under product, warehouse, or date filters should be tested during dashboard development.
