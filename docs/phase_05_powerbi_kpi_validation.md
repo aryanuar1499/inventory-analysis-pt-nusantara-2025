@@ -71,6 +71,7 @@ This result represents sales volume rather than revenue or profit. It provides a
 |---|---:|---:|---:|---|
 | Total Units Sold | 209,924 | 209,924 | 0 | PASS |
 | Inventory Turnover Ratio | 11.49 | 11.49 | 0.00 | PASS |
+| Days Inventory Outstanding | 31.78 | 31.78 | 0.00 | PASS |
 
 *Additional validated KPIs will be documented in subsequent sections.*
 
@@ -363,6 +364,119 @@ The result should be interpreted alongside stockout risk, demand patterns, and i
 - **Measure:** `Inventory Turnover Ratio`
 - **Display Units:** None
 - **Decimal Places:** 2
+- **Validation:** Passed
+
+---
+
+### 1.10 KPI 05 — Days Inventory Outstanding (DIO)
+
+#### Business Objective
+
+Estimate the number of days that average inventory value represents relative to the annual cost of goods sold during 2025.
+
+This KPI supports inventory efficiency analysis, working capital evaluation, and inventory management decisions.
+
+#### Calculation Method
+
+Days Inventory Outstanding = (Average Inventory Value / Estimated COGS) × 365
+
+The calculation uses the full 2025 reporting period of 365 days.
+
+#### DAX Measure
+
+```dax
+Days Inventory Outstanding =
+DIVIDE(
+    [Average Inventory Value] * 365,
+    [Estimated COGS]
+)
+```
+
+**Calculation Logic:**
+
+- `[Average Inventory Value]` retrieves the previously validated average inventory valuation.
+- `[Estimated COGS]` retrieves the previously validated estimated cost of goods sold.
+- `365` represents the number of days in the 2025 reporting period.
+- `DIVIDE()` performs the division and safely handles zero or blank denominators.
+
+#### PostgreSQL Validation Query
+
+```sql
+WITH estimated_cogs AS (
+    SELECT
+        SUM(s.quantity * p.unit_cost) AS total_cogs
+    FROM sales s
+    JOIN products p
+        ON s.product_id = p.product_id
+),
+opening_value AS (
+    SELECT
+        SUM(o.opening_qty * p.unit_cost) AS opening_inventory_value
+    FROM opening_inventory o
+    JOIN products p
+        ON o.product_id = p.product_id
+),
+closing_value AS (
+    SELECT
+        SUM(v.daily_closing_stock * p.unit_cost) AS closing_inventory_value
+    FROM vw_daily_inventory_balance v
+    JOIN products p
+        ON v.product_id = p.product_id
+    WHERE v.stock_date = '2025-12-31'
+)
+SELECT
+    ROUND(
+        (
+            (o.opening_inventory_value + cl.closing_inventory_value) / 2
+        ) * 365.0 / NULLIF(c.total_cogs, 0),
+        2
+    ) AS days_inventory_outstanding
+FROM estimated_cogs c
+CROSS JOIN opening_value o
+CROSS JOIN closing_value cl;
+```
+
+#### Validation Results
+
+| Validation Component | Result |
+|---|---:|
+| Estimated COGS | 3,218,678,000.00 |
+| Average Inventory Value | 280,208,250.00 |
+| PostgreSQL SQL | 31.78 |
+| Power BI DAX | 31.78 |
+| Displayed Difference | 0.00 |
+| Validation Status | PASS — 2 Decimal Places |
+
+**Validation Conditions:**
+
+- Reporting period: January 1–December 31, 2025.
+- The calculation was evaluated without active report filters.
+- Average Inventory Value uses beginning and ending inventory valuations.
+- Both SQL and DAX calculations use unrounded intermediate values.
+
+#### Business Interpretation
+
+The estimated Days Inventory Outstanding for 2025 was **31.78 days**.
+
+This indicates that the average inventory value was equivalent to approximately 31.78 days of estimated cost of goods sold.
+
+DIO is an aggregate financial efficiency indicator and does not represent the actual storage duration of each individual product.
+
+#### Methodology and Limitations
+
+- Estimated COGS is calculated using product unit costs rather than historical transaction-level costs.
+- Average Inventory Value uses opening and closing inventory values rather than daily average balances.
+- The measure is validated for the full-year 2025 reporting context.
+- The fixed 365-day multiplier assumes a full-year reporting period; additional DAX logic would be required for arbitrary date selections.
+- DIO should be interpreted alongside inventory turnover, stockout exposure, and business operating conditions.
+
+#### Power BI Implementation
+
+- **Visual:** Card
+- **Measure:** `Days Inventory Outstanding`
+- **Display Units:** None
+- **Decimal Places:** 2
+- **Unit:** Days
 - **Validation:** Passed
 
 ---
