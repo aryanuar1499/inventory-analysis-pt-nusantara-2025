@@ -72,6 +72,7 @@ This result represents sales volume rather than revenue or profit. It provides a
 | Total Units Sold | 209,924 | 209,924 | 0 | PASS |
 | Inventory Turnover Ratio | 11.49 | 11.49 | 0.00 | PASS |
 | Days Inventory Outstanding | 31.78 | 31.78 | 0.00 | PASS |
+|Zero Stock Exposure (%) | 0,29% | 0,29% | 0.00 | PASS
 
 *Additional validated KPIs will be documented in subsequent sections.*
 
@@ -480,3 +481,74 @@ DIO is an aggregate financial efficiency indicator and does not represent the ac
 - **Validation:** Passed
 
 ---
+
+### 1.11 KPI 06 — Zero Stock Exposure (%)
+
+#### Business Objective
+
+Measure the percentage of daily inventory observations where closing stock equals zero across product–warehouse combinations during the 2025 reporting period.
+
+This KPI helps identify inventory availability risks and provides a foundation for further stockout exposure analysis.
+
+#### Calculation
+
+Zero Stock Exposure (%) = (Zero Stock Observations / Total Stock Observations) × 100
+
+**Validated Results:**
+- Total Stock Observations: 43,800
+- Zero Stock Observations: 126
+- Zero Stock Exposure: 0.29%
+
+**Interpretation:**
+
+Approximately 0.29% of daily inventory observations recorded zero closing stock during 2025. This metric represents zero-stock exposure, not confirmed lost sales or unmet customer demand.
+
+#### DAX Measure
+
+```dax
+Zero Stock Exposure (%) =
+DIVIDE(
+    CALCULATE(
+        COUNTROWS('public vw_daily_inventory_balance'),
+        'public vw_daily_inventory_balance'[daily_closing_stock] = 0
+    ),
+    COUNTROWS('public vw_daily_inventory_balance'),
+    0
+)
+```
+
+**Measure Format:**
+- Data type: Decimal number
+- Format: Percentage
+- Decimal places: 2
+
+#### PostgreSQL Validation
+
+```sql
+SELECT
+    COUNT(*) AS total_stock_observations,
+    COUNT(*) FILTER (
+        WHERE daily_closing_stock = 0
+    ) AS zero_stock_observations,
+    ROUND(
+        COUNT(*) FILTER (
+            WHERE daily_closing_stock = 0
+        ) * 100.0 / NULLIF(COUNT(*), 0),
+        2
+    ) AS zero_stock_exposure_pct
+FROM vw_daily_inventory_balance;
+```
+
+**Validation Results:**
+
+| Metric | PostgreSQL | Power BI |
+|---|---:|---:|
+| Zero Stock Exposure (%) | 0.29% | 0.29% |
+
+**Validation Status:** PASSED — PostgreSQL and Power BI results match to two decimal places.
+
+**Technical Notes:**
+- Each observation represents one product–warehouse–date combination.
+- The calculation uses daily closing stock, not opening stock.
+- The DAX measure responds to the applicable Power BI filter context.
+- Zero stock does not necessarily indicate lost sales or unmet customer demand.
