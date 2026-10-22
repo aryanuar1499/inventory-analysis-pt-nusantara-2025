@@ -133,3 +133,49 @@ Next:
 - Warehouse Performance Visualization.
 - Inventory Health and Risk Indicators.
 - Interactive Slicer Implementation and Validation.
+
+
+## 7. Monthly Sales Trend Visualization
+
+### Development Step
+Step 144 — Monthly Sales Trend Visualization
+
+### Implementation
+- Report Page: Executive Overview
+- Visual Type: Line Chart
+- X-axis: sales_date (Year and Month)
+- Y-axis: Total Sales Revenue (DAX Measure)
+- Analysis Period: January–December 2025
+
+### Monthly Revenue Validation
+
+| Month | Net Sales Revenue (IDR) |
+|---|---:|
+| January | 357,400,680 |
+| February | 309,946,525 |
+| March | 364,363,775 |
+| April | 354,589,495 |
+| May | 349,202,890 |
+| June | 327,301,520 |
+| July | 335,490,255 |
+| August | 346,136,620 |
+| September | 333,641,150 |
+| October | 341,309,555 |
+| November | 336,061,005 |
+| December | 352,725,980 |
+
+### Validation Results
+- All 12 monthly revenue values matched PostgreSQL.
+- Annual Net Sales Revenue: IDR 4,108,169,450.
+- Difference between PostgreSQL and Power BI: IDR 0.
+- Monthly aggregation and DAX measure behavior validated.
+
+### Business Insights
+1. March recorded the highest monthly revenue at IDR 364,363,775.
+2. February recorded the lowest monthly revenue at IDR 309,946,525.
+3. Revenue fluctuated throughout 2025 without a consistent month-over-month growth trend.
+4. December revenue recovered compared with November, reaching IDR 352,725,980.
+5. Further investigation is required to explain monthly fluctuations, including sales volume, discounts, product mix, and warehouse contributions.
+
+### Status
+Monthly Sales Trend Visualization — Completed and Validated.
