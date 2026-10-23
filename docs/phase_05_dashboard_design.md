@@ -219,3 +219,42 @@ Step 145 — Sales Performance Visualization
 
 ### Status
 Sales Revenue by Product Category — Completed and Validated.
+
+
+## 9. Warehouse Sales Performance Visualization
+
+### Development Step
+Step 146 — Warehouse Sales Performance Visualization
+
+### Implementation
+- Report Page: Executive Overview
+- Visual Type: Clustered Column Chart
+- X-axis: warehouses[warehouse_name]
+- Y-axis: Total Sales Revenue (DAX Measure)
+- Analysis Period: January–December 2025
+- Visual Title: Net Sales Revenue by Warehouse
+
+### Warehouse Revenue Validation
+
+| Warehouse | Net Sales Revenue (IDR) | Revenue Contribution |
+|---|---:|---:|
+| Central Warehouse | 1,697,990,030 | 41.33% |
+| Urban Warehouse | 1,404,637,990 | 34.19% |
+| Regional Warehouse | 1,005,541,430 | 24.48% |
+| **Total** | **4,108,169,450** | **100.00%** |
+
+### Validation Results
+- All three warehouse revenue values matched PostgreSQL.
+- Revenue contribution percentages validated using SQL window functions.
+- Total warehouse revenue matched the annual Net Sales Revenue KPI.
+- Revenue difference: IDR 0.
+
+### Business Insights
+1. Central Warehouse generated the highest revenue, contributing 41.33% of annual net sales.
+2. Urban Warehouse ranked second with a 34.19% contribution.
+3. Regional Warehouse contributed 24.48% of annual revenue.
+4. Central and Urban Warehouses collectively generated 75.52% of annual net sales revenue.
+5. Warehouse revenue performance should be evaluated alongside inventory turnover, stock availability, warehouse capacity, and stockout exposure before drawing conclusions about operational efficiency.
+
+### Status
+Warehouse Sales Performance Visualization — Completed and Validated.
