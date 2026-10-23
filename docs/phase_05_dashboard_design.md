@@ -179,3 +179,43 @@ Step 144 — Monthly Sales Trend Visualization
 
 ### Status
 Monthly Sales Trend Visualization — Completed and Validated.
+
+
+## 8. Sales Revenue by Product Category
+
+### Development Step
+Step 145 — Sales Performance Visualization
+
+### Implementation
+- Report Page: Executive Overview
+- Visual Type: Clustered Bar Chart
+- Y-axis: products[category]
+- X-axis: Total Sales Revenue (DAX Measure)
+- Sorting: Net Sales Revenue — Descending
+- Analysis Period: January–December 2025
+
+### Category Revenue Validation
+
+| Product Category | Net Sales Revenue (IDR) | Revenue Contribution |
+|---|---:|---:|
+| Food & Beverage | 1,550,716,430 | 37.75% |
+| Home Care | 919,456,660 | 22.38% |
+| Household | 824,882,580 | 20.08% |
+| Personal Care | 813,113,780 | 19.79% |
+| **Total** | **4,108,169,450** | **100.00%** |
+
+### Validation Results
+- All four category revenue values matched PostgreSQL.
+- Revenue contribution percentages validated using SQL window functions.
+- Total category revenue matched the annual Net Sales Revenue KPI.
+- Revenue difference: IDR 0.
+
+### Business Insights
+1. Food & Beverage generated the highest revenue at IDR 1,550,716,430, contributing 37.75% of annual revenue.
+2. Home Care ranked second with a 22.38% contribution.
+3. Household and Personal Care contributed 20.08% and 19.79%, respectively.
+4. Food & Beverage is an important category for further inventory availability and stockout-risk analysis.
+5. Revenue contribution alone does not establish profitability; additional cost and margin analysis would be required.
+
+### Status
+Sales Revenue by Product Category — Completed and Validated.
